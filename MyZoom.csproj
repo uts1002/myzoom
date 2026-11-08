@@ -28,4 +28,10 @@
     <Resource Include="Assets\myzoom.ico" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- tools/uitest 는 별도 프로젝트 -->
+    <Compile Remove="tools\**" />
+    <None Remove="tools\**" />
+  </ItemGroup>
+
 </Project>

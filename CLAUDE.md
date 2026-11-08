@@ -54,6 +54,13 @@ tools/make-icon.ps1  Assets/myzoom.ico 생성
 dotnet build                                              # 빌드 (실행 중이면 MyZoom 종료 후)
 bin/Debug/net9.0-windows/MyZoom.exe --selftest <폴더>      # 창 없이 주요 화면 PNG 렌더링 + 그리기 로직 검사
 install.bat                                               # Release 빌드 후 %LOCALAPPDATA%\Programs\MyZoom 설치
+dotnet run -c Release --project tools/uitest -- <폴더> 120  # 설치본 실제 조작 테스트: 2분 유휴 후 시작, 사람 입력 감지 시 중단
+```
+
+UI 테스트(tools/uitest)는 사용자가 자리를 비웠을 때만 돈다. 전역 단축키 외의 키·클릭은 MyZoom 창이 앞/커서 아래일 때만 보낸다.
+테스트 프로세스는 반드시 DPI 인식(PerMonitorV2)으로 — 아니면 150% 모니터에서 창 크기를 축소 좌표로 읽어 오판한다.
+
+```bash
 ```
 
 ---
@@ -88,4 +95,5 @@ install.bat                                               # Release 빌드 후 %
 
 - 백그라운드 프로세스에서 띄운 창은 포그라운드 권한이 없어 다른 창 뒤에 깔린다 → 두 번째 실행 시 `AllowSetForegroundWindow(-1)` 후 신호, 설정 창은 Topmost 토글로 올림.
 - 사용자가 PC 를 쓰는 중에는 마우스·키 입력을 흉내 내는 UI 테스트가 서로 충돌한다 → `--selftest` 렌더링 테스트로 먼저 확인.
+- UI 테스트 프로세스가 DPI 비인식이면 GetWindowRect 가 축소 좌표(1707x960)를 줘서 정상 동작을 FAIL 로 오판했다 → SetProcessDpiAwarenessContext(-4) 먼저.
 - WinForms 와 WPF 를 같이 쓰면 `Application`·`Image`·`Color` 등 이름이 겹친다 → csproj 에서 WinForms/Drawing 전역 using 제거, `WinForms` 별칭만 사용.
