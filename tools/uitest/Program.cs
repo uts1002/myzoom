@@ -31,6 +31,7 @@ static class P
         Out = args.Length > 0 ? args[0] : "uitest_out";
         int idleSec = args.Length > 1 ? int.Parse(args[1]) : 120;
         double maxWaitMin = args.Length > 2 ? double.Parse(args[2]) : 240;
+        if (args.Length > 3) Only = args[3].Split(',').ToHashSet(); // 예: "8,8,8" 또는 "7,8"
         Directory.CreateDirectory(Out);
         Log = new StreamWriter(Path.Combine(Out, "report.txt"), false, Encoding.UTF8) { AutoFlush = true };
         StartHookThread();
@@ -87,6 +88,8 @@ static class P
             Group("6 커서강조+키표시", TestHaloKeys);
             Group("7 라이브 줌", TestLiveZoom);
             Group("8 영역 캡처", TestSnip);
+            if (Only != null && Only.Contains("8"))
+                for (int i = 0; i < 4; i++) Group("8 영역 캡처(반복)", TestSnip);
             Group("9 두 번째 실행 → 설정 창", TestSecondInstance);
         }
         finally
@@ -110,8 +113,11 @@ static class P
         else Ok("error.log 새 오류 없음");
     }
 
+    static HashSet<string> Only;
+
     static void Group(string name, Action a)
     {
+        if (Only != null && !Only.Contains(name.Split(' ')[0])) return;
         L($"--- {name}");
         try { a(); }
         catch (StepFail f) { Bad(name + ": " + f.Message); Cleanup(); }
@@ -254,6 +260,10 @@ static class P
         Move(CX, CY);
         Key("ctrl+4"); LiveZoomOn = true; Thread.Sleep(1500);
         Shot("24_livezoom");                   // 캡처에 확대가 찍히는지 자체도 확인 대상
+        RawWheel(CX, CY, 240); Thread.Sleep(900);           // 휠만으로 확대 (2배 → 약 2.9배)
+        Shot("24b_livezoom_wheel_in");
+        RawWheel(CX, CY, -240); Thread.Sleep(900);          // 다시 축소
+        Shot("24c_livezoom_wheel_out");
         SlowMove(CX, CY, 600, 400, 15); Thread.Sleep(600);
         Shot("25_livezoom_moved");
         Key("ctrl+2"); LiveZoomOn = false; Thread.Sleep(1300);   // 확대 화면 그대로 그리기로
@@ -461,6 +471,15 @@ static class P
     {
         Move(x, y); RequireUnderCursor();
         for (int d = delta; d > 0; d -= 120) { mouse_event(0x800, 0, 0, 120, UIntPtr.Zero); Thread.Sleep(80); }
+        Ensure();
+    }
+
+    // 창 확인 없이 휠 (라이브 줌은 창이 없음 — MyZoom 훅이 가로채야 정상)
+    static void RawWheel(int x, int y, int delta)
+    {
+        Move(x, y);
+        int step = delta > 0 ? 120 : -120;
+        for (int d = Math.Abs(delta); d > 0; d -= 120) { mouse_event(0x800, 0, 0, step, UIntPtr.Zero); Thread.Sleep(80); }
         Ensure();
     }
 

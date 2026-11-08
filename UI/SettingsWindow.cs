@@ -263,6 +263,7 @@ public sealed class SettingsWindow : Window
         Slider(p, "처음 확대 배율", 1.25, 6, 0.25, () => _s.InitialZoom, v => _s.InitialZoom = v, "{0:0.00}배");
         Slider(p, "최대 확대 배율", 2, 16, 1, () => _s.MaxZoom, v => _s.MaxZoom = v, "{0:0}배");
         Slider(p, "라이브 줌 처음 배율", 1.25, 6, 0.25, () => _s.LiveZoomInitial, v => _s.LiveZoomInitial = v, "{0:0.00}배");
+        Check(p, "라이브 줌에서 휠만으로 확대·축소 (끄면 Ctrl+휠, 그냥 휠은 화면 스크롤)", () => _s.LiveZoomPlainWheel, v => _s.LiveZoomPlainWheel = v);
         Check(p, "확대·축소를 부드럽게 (애니메이션)", () => _s.AnimateZoom, v => _s.AnimateZoom = v);
 
         Header(p, "펜");
@@ -395,7 +396,7 @@ public sealed class SettingsWindow : Window
         Note(p, "화면을 멈추지 않고 그 위에 그립니다(동영상·움직이는 화면 위 판서). 같은 단축키를 한 번 더 누르면 그림은 남긴 채 아래 프로그램을 조작할 수 있고, 다시 누르면 이어서 그립니다. Esc 로 지우고 끝내기.");
 
         Header(p, "라이브 줌");
-        Note(p, "움직이는 화면을 그대로 확대합니다(클릭·입력 가능). Ctrl+휠로 배율 조절. 라이브 줌 중에 그리기 단축키를 누르면 그 확대 화면 그대로 멈추고 판서합니다.");
+        Note(p, "움직이는 화면을 그대로 확대합니다(클릭·입력 가능). 휠로 배율 조절(설정에서 Ctrl+휠로 바꿀 수 있음). 라이브 줌 중에 그리기 단축키를 누르면 그 확대 화면 그대로 멈추고 판서합니다.");
 
         Header(p, "트레이 아이콘");
         Note(p, "작업 표시줄 오른쪽 아래 아이콘을 오른쪽 클릭하면 모든 기능과 설정, 종료가 있습니다. 두 번 클릭하면 이 설정 창이 열립니다.");

@@ -7,7 +7,7 @@ namespace MyZoom.Features;
 /// <summary>
 /// 라이브 줌: Windows 돋보기 API(MagSetFullscreenTransform)로 움직이는 화면을 그대로 확대한다.
 /// 커서가 화면에서 같은 자리에 머물도록(비례 이동) 오프셋을 잡기 때문에 확대된 상태에서도
-/// 보이는 곳을 그대로 클릭할 수 있다. Ctrl+휠로 배율 조절.
+/// 보이는 곳을 그대로 클릭할 수 있다. 휠(설정에 따라 Ctrl+휠)로 배율 조절.
 /// </summary>
 public sealed class LiveZoomController
 {
@@ -46,7 +46,7 @@ public sealed class LiveZoomController
             IsActive = true;
             _scale = 1;
             GlobalMouseHook.Acquire();
-            GlobalMouseHook.CtrlWheel = OnCtrlWheel;
+            GlobalMouseHook.Wheel = OnWheel;
             _timer.Start();
         }
         _stopping = false;
@@ -71,12 +71,16 @@ public sealed class LiveZoomController
     /// <summary>현재 확대 상태 (그리기 모드로 넘길 때 사용). 좌표는 물리 픽셀.</summary>
     public (double Scale, int OffsetX, int OffsetY) Current => (_scale, _offX, _offY);
 
-    bool OnCtrlWheel(int delta)
+    bool OnWheel(int delta, bool ctrl)
     {
         if (!IsActive || _stopping) return false;
         var s = _settings();
+        // 기본: 휠만으로 확대·축소 (라이브 줌 중엔 페이지 스크롤 대신 배율이 바뀜).
+        // 설정에서 끄면 Ctrl+휠일 때만 배율 조절, 그냥 휠은 아래 프로그램 스크롤.
+        if (!ctrl && !s.LiveZoomPlainWheel) return false;
         _target = Math.Clamp(_target * Math.Pow(1.2, delta / 120.0), 1.0, s.MaxZoom);
         if (!s.AnimateZoom) _scale = _target;
+        if (_target <= 1.0001) Stop(); // 끝까지 축소하면 라이브 줌 종료 (휠이 다시 스크롤로 돌아옴)
         return true; // 아래 프로그램(브라우저 확대 등)에는 전달하지 않음
     }
 
@@ -103,7 +107,7 @@ public sealed class LiveZoomController
         _timer.Stop();
         Native.MagSetFullscreenTransform(1f, 0, 0);
         Native.MagUninitialize();
-        if (GlobalMouseHook.CtrlWheel == OnCtrlWheel) GlobalMouseHook.CtrlWheel = null;
+        if (GlobalMouseHook.Wheel == OnWheel) GlobalMouseHook.Wheel = null;
         GlobalMouseHook.Release();
         IsActive = false;
         _stopping = false;

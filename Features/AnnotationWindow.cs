@@ -1417,6 +1417,8 @@ public sealed class AnnotationWindow : Window
         var crop = new CroppedBitmap(_shot, new Int32Rect(x, y, w, h));
         crop.Freeze();
 
+        // 클립보드를 다른 프로그램이 잡고 있으면 복사가 늦어질 수 있으니, 화면은 먼저 치운다
+        Hide();
         bool ok = ScreenHelper.CopyToClipboard(crop);
         string msg = ok ? "영역을 클립보드에 복사했습니다" : "클립보드 복사에 실패했습니다";
         if (S.SnipAlsoSaveFile)

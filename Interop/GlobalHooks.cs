@@ -13,6 +13,9 @@ public static class GlobalMouseHook
     public static event Action<int, int>? Moved;
     public static event Action<MouseButtonKind, int, int>? ButtonDown;
 
+    /// <summary>휠 처리기 (delta, Ctrl 눌림). true 를 돌려주면 휠 입력을 다른 프로그램에 넘기지 않는다. 라이브 줌용.</summary>
+    public static Func<int, bool, bool>? Wheel;
+
     /// <summary>Ctrl+휠 처리기. true 를 돌려주면 휠 입력을 다른 프로그램에 넘기지 않는다.</summary>
     public static Func<int, bool>? CtrlWheel;
 
@@ -57,12 +60,13 @@ public static class GlobalMouseHook
                         ButtonDown?.Invoke(MouseButtonKind.Middle, info.pt.X, info.pt.Y);
                         break;
                     case Native.WM_MOUSEWHEEL:
-                        if (CtrlWheel != null && Native.IsKeyDown(0x11))
-                        {
-                            int delta = (short)((info.mouseData >> 16) & 0xFFFF);
-                            if (CtrlWheel(delta)) return new IntPtr(1);
-                        }
+                    {
+                        int delta = (short)((info.mouseData >> 16) & 0xFFFF);
+                        bool ctrl = Native.IsKeyDown(0x11);
+                        if (Wheel != null && Wheel(delta, ctrl)) return new IntPtr(1);
+                        if (ctrl && CtrlWheel != null && CtrlWheel(delta)) return new IntPtr(1);
                         break;
+                    }
                 }
             }
             catch

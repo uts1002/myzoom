@@ -117,6 +117,8 @@ public sealed class AppSettings
     public double MaxZoom { get; set; } = 8.0;
     public bool AnimateZoom { get; set; } = true;
     public double LiveZoomInitial { get; set; } = 2.0;
+    /// <summary>true: 라이브 줌 중 휠만으로 확대·축소. false: Ctrl+휠일 때만 (그냥 휠은 스크롤).</summary>
+    public bool LiveZoomPlainWheel { get; set; } = true;
 
     // ---- 펜 ----
     public double PenWidth { get; set; } = 4;
