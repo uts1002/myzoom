@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\myzoom.ico</ApplicationIcon>
+    <AssemblyName>MyZoom</AssemblyName>
+    <RootNamespace>MyZoom</RootNamespace>
+    <Version>1.0.0</Version>
+    <Product>MyZoom</Product>
+    <Description>화면 확대·판서·발표 보조 도구</Description>
+    <SatelliteResourceLanguages>ko</SatelliteResourceLanguages>
+    <NoWarn>$(NoWarn);WFAC010;WFO0003</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- WPF 와 WinForms 를 같이 쓰므로 모호한 이름 충돌을 막는다 (WinForms 는 별칭으로만 사용) -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\myzoom.ico" />
+  </ItemGroup>
+
+</Project>
