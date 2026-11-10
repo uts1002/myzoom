@@ -12,6 +12,18 @@ ZoomIt 의 기능을 기본으로, 다른 줌·판서 도구(Epic Pen, gInk, Poi
 - 다시 실행하면 최신 코드로 업데이트된다
 - 제거: `uninstall.bat` (설정까지 지우려면 `uninstall.bat -RemoveSettings`)
 
+### 다른 PC에 설치 (.NET 없는 노트북 등)
+
+이 PC에서 아래를 실행하면 `dist\MyZoom설치.zip`(약 60MB, .NET 런타임을 넣은 exe 하나)이 생긴다.
+받는 PC에서는 zip 을 풀고 `설치.bat` 을 더블클릭하면 같은 위치에 설치된다(빌드 없음, .NET 필요 없음). 제거는 `제거.bat`.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\make-package.ps1
+```
+
+원격 데스크톱으로 발표할 때는 원격 PC가 아니라 **내 앞 PC(노트북)에 MyZoom 을 켜 두고** 확대한다. 원격 PC에서 확대하면 바뀐 화면 전체를 다시 보내야 해서 끊긴다.
+원격 데스크톱 연결 → 옵션 표시 → 로컬 리소스 → 「Windows 키 조합 적용」을 「이 컴퓨터」로 두면 원격 창이 앞에 있어도 노트북 쪽 단축키가 먹을 가능성이 높다(미리 눌러 볼 것).
+
 실행되면 작업 표시줄 오른쪽 아래 트레이에 돋보기 아이콘이 생긴다. 아이콘을 두 번 누르면 설정, 오른쪽 클릭하면 모든 기능 메뉴.
 
 ## 기능과 기본 단축키
