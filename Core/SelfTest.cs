@@ -24,6 +24,17 @@ public static class SelfTest
         var slide = FakeSlide(W, H);
         var mon = new MonitorArea(new Int32Rect(0, 0, (int)W, (int)H), new Int32Rect(0, 0, (int)W, (int)H), "test");
 
+        // 0) 소개용 화면 (엄페이지 작품 사진): 수업에서 판서한 모습
+        var show = new AnnotationWindow(s, AnnotationMode.Draw, mon, slide);
+        show.TestLayout(W, H);
+        show.TestStroke(DrawTool.Highlighter, ColorUtil.Parse(s.ColorYellow), new Point(172, 224), new Point(450, 224), new Point(738, 224));
+        show.TestStroke(DrawTool.Pen, ColorUtil.Parse(s.ColorRed), Wave(318, 326, 262, 4, 24));
+        show.TestStroke(DrawTool.Ellipse, ColorUtil.Parse(s.ColorBlue), new Point(522, 352), new Point(570, 380), new Point(612, 406));
+        show.TestText(new Point(760, 455), ColorUtil.Parse(s.ColorRed), "잎에서 만들어져요");
+        show.TestStroke(DrawTool.Arrow, ColorUtil.Parse(s.ColorRed), new Point(900, 505), new Point(980, 540), new Point(1066, 575));
+        Save(show.TestRoot, W, H, Path.Combine(outDir, "00_showcase.png"));
+        show.Close();
+
         // 1) 그리기 모드: 펜·형광펜·화살표·사각형·원·글자
         var a = new AnnotationWindow(s, AnnotationMode.Draw, mon, slide);
         a.TestLayout(W, H);
