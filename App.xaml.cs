@@ -51,9 +51,32 @@ public partial class App : Application
         }
 #endif
 
+        // ---- 설치·제거 (exe 하나로) ----
+        if (e.Args.Contains("--install")) { Installer.Install(quiet: e.Args.Contains("--quiet")); Shutdown(); return; }
+        if (e.Args.Contains("--uninstall")) { Installer.Uninstall(); Shutdown(); return; }
+        if (e.Args.Length == 0 && !AppInfo.IsDev && !AppInfo.IsInstalledCopy)
+        {
+            // 받은 MyZoom.exe 를 바로 더블클릭한 경우: 설치를 권한다
+            var answer = MessageBox.Show(
+                "MyZoom 을 이 PC에 설치할까요?\n\n설치하면 시작 메뉴·바탕화면 바로가기가 생기고, Windows 를 켤 때 자동으로 실행되며, 새 버전이 나오면 알아서 업데이트됩니다.\n\n'아니요'를 누르면 설치하지 않고 이번만 실행합니다.",
+                "MyZoom 설치", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+            if (answer == MessageBoxResult.Yes) { Installer.Install(quiet: false); Shutdown(); return; }
+            if (answer == MessageBoxResult.Cancel) { Shutdown(); return; }
+        }
+
         // ---- 한 번만 실행 (두 번째 실행은 설정 창을 연다) ----
         string user = Environment.UserName;
-        _mutex = new Mutex(true, "MyZoom.SingleInstance." + user, out bool created);
+        _mutex = new Mutex(false, "MyZoom.SingleInstance." + user);
+        bool created;
+        try
+        {
+            // 업데이트 직후에는 예전 버전이 끝날 때까지 잠깐 기다린다
+            created = _mutex.WaitOne(e.Args.Contains("--updated-from") || e.Args.Contains("--installed") ? 15000 : 0);
+        }
+        catch (AbandonedMutexException)
+        {
+            created = true;
+        }
         if (!created)
         {
             // 이미 실행 중인 쪽이 설정 창을 맨 앞으로 띄울 수 있게 권한을 넘겨준다
@@ -105,7 +128,104 @@ public partial class App : Application
                 $"{Settings.ZoomHotkey} 확대 · {Settings.DrawHotkey} 그리기 · {Settings.TimerHotkey} 타이머\n트레이 아이콘을 두 번 누르면 설정이 열립니다.");
         }
 
+        // ---- 버전 관리 ----
+        Updater.CleanupOld();
+        if (AppInfo.IsInstalledCopy) Installer.RegisterAppEntry(AppInfo.CurrentExe);
+        int fromIdx = Array.IndexOf(e.Args, "--updated-from");
+        if (fromIdx >= 0)
+        {
+            string from = fromIdx + 1 < e.Args.Length ? e.Args[fromIdx + 1] : "";
+            Toast($"MyZoom 을 {AppInfo.VersionText} 버전으로 업데이트했습니다" + (from.Length > 0 ? $" (이전 {from})" : ""));
+            if (e.Args.Contains("--restore-halo") && _halo == null) ToggleCursorHighlight(quiet: true);
+            if (e.Args.Contains("--restore-keys") && _keys == null) ToggleKeystrokes(quiet: true);
+        }
+        if (e.Args.Contains("--installed"))
+            Toast($"MyZoom {AppInfo.VersionText} 을 설치했습니다. 트레이 아이콘을 두 번 누르면 설정이 열립니다.");
+        StartUpdateTimer();
+
         if (firstRun || e.Args.Contains("--settings")) ShowSettings();
+    }
+
+    // =====================================================================
+    // 자동 업데이트 (pchelper 와 같은 방식: 켜고 30초 뒤 한 번, 그 뒤 6시간마다)
+    // =====================================================================
+
+    DispatcherTimer? _updateTimer;
+    (Version Version, string Path)? _pendingUpdate;
+    bool _checking;
+
+    void StartUpdateTimer()
+    {
+        if (!AppInfo.CanSelfUpdate) return;
+        _updateTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+        _updateTimer.Tick += async (_, _) =>
+        {
+            if (_pendingUpdate != null)
+            {
+                _updateTimer.Interval = TimeSpan.FromMinutes(2);
+                TryApplyPendingUpdate(force: false); // 받아 둔 게 있으면 쉬는 틈에 적용
+                return;
+            }
+            _updateTimer.Interval = TimeSpan.FromHours(6);
+            if (Settings.AutoUpdate) await CheckForUpdateAsync(manual: false);
+        };
+        _updateTimer.Start();
+    }
+
+    /// <summary>업데이트 확인. 새 버전이 있으면 받아 두고, 쓰는 중이 아니면 바로 바꿔서 다시 시작. 결과 문장을 돌려준다.</summary>
+    public async Task<string> CheckForUpdateAsync(bool manual)
+    {
+        if (AppInfo.IsDev) return "개발판(직접 빌드한 버전)이라 업데이트하지 않습니다.";
+        if (!AppInfo.IsInstalledCopy) return "설치되지 않은 상태로 실행 중이라 업데이트하지 않습니다.";
+        if (_checking) return "확인하는 중입니다…";
+        _checking = true;
+        try
+        {
+            var latest = await Updater.GetLatestVersionAsync();
+            if (latest == null) return "최신 버전 정보를 읽지 못했습니다.";
+            if (latest <= AppInfo.Version) return $"최신 버전입니다 ({AppInfo.VersionText}).";
+
+            if (manual) Toast($"새 버전 {latest.ToString(3)} 을 받는 중입니다…");
+            string path = await Updater.DownloadAsync(latest);
+            _pendingUpdate = (latest, path);
+            if (TryApplyPendingUpdate(force: manual)) return $"{latest.ToString(3)} 으로 바꾸는 중…";
+            if (_updateTimer != null) _updateTimer.Interval = TimeSpan.FromMinutes(2);
+            return $"새 버전 {latest.ToString(3)} 을 받아 두었습니다. 줌·그리기·타이머를 쓰지 않을 때 자동으로 바뀝니다.";
+        }
+        catch (Exception ex)
+        {
+            return "업데이트 확인 실패: " + ex.Message + (manual ? "" : "");
+        }
+        finally
+        {
+            _checking = false;
+        }
+    }
+
+    /// <summary>쓰는 중(줌·그리기·타이머·라이브 줌·스포트라이트)이면 미룬다. force 면 설정 창이 열려 있어도 진행.</summary>
+    bool TryApplyPendingUpdate(bool force)
+    {
+        if (_pendingUpdate is not { } p) return false;
+        bool busy = _annot != null || _liveDraw != null || _timer != null || _spotlight != null
+                    || _liveZoom?.IsActive == true || (!force && _settingsWindow != null);
+        if (busy) return false;
+
+        string extra = (_halo != null ? "--restore-halo " : "") + (_keys != null ? "--restore-keys" : "");
+        Cleanup(); // 단축키·트레이를 먼저 풀어 새 버전이 바로 등록할 수 있게
+        try { _mutex?.ReleaseMutex(); } catch { }
+        if (Updater.ApplyAndRestart(p.Path, extra))
+        {
+            Shutdown();
+            return true;
+        }
+        // 실패하면 원래대로 계속 쓴다
+        _pendingUpdate = null;
+        try { _mutex?.WaitOne(0); } catch { }
+        _hotkeys = new HotkeyManager();
+        _tray = new TrayIcon(this);
+        RegisterHotkeys();
+        Toast("업데이트를 적용하지 못했습니다. 다음에 다시 시도합니다.");
+        return false;
     }
 
     protected override void OnExit(ExitEventArgs e)

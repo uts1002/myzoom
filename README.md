@@ -5,21 +5,21 @@ ZoomIt 의 기능을 기본으로, 다른 줌·판서 도구(Epic Pen, gInk, Poi
 
 ## 설치
 
-`install.bat` 을 더블클릭한다. (관리자 권한 필요 없음, .NET 9 SDK 필요)
+[GitHub 릴리즈](https://github.com/uts1002/myzoom/releases/latest)에서 **`MyZoom-Setup.cmd`** 를 받아 더블클릭한다. (관리자 권한·.NET 설치 필요 없음)
+최신 `MyZoom.exe` 를 받아 이 사용자에게 설치한다. `MyZoom.exe` 를 직접 받아 더블클릭해도 "설치할까요?"를 묻는다.
 
 - 설치 위치: `%LOCALAPPDATA%\Programs\MyZoom\MyZoom.exe`
-- 시작 메뉴·바탕화면 바로가기, Windows 시작 시 자동 실행이 등록된다 (자동 실행은 설정 > 일반에서 끌 수 있음)
-- 다시 실행하면 최신 코드로 업데이트된다
-- 제거: `uninstall.bat` (설정까지 지우려면 `uninstall.bat -RemoveSettings`)
+- 시작 메뉴·바탕화면 바로가기, Windows 시작 시 자동 실행, **설정 > 앱 > 설치된 앱** 목록에 등록된다
+- **자동 업데이트:** 켜고 30초 뒤, 그 뒤 6시간마다 새 버전을 확인해 받아 둔다. 줌·그리기·타이머를 쓰지 않을 때 잠깐 다시 시작하며 바뀐다.
+  설정 > 일반에서 끄거나 "지금 업데이트 확인"을 누를 수 있다
+- 제거: 설정 > 앱 > 설치된 앱 > MyZoom > 제거 (설정까지 지울지 물어봄)
+- 브라우저에서 받은 exe 는 서명이 없어 "Windows의 PC 보호" 경고가 뜰 수 있다 → 「추가 정보 → 실행」. `MyZoom-Setup.cmd` 로 설치하면 이 경고가 덜하다
 
-### 다른 PC에 설치 (.NET 없는 노트북 등)
+### 새 버전 내보내기 (개발)
 
-이 PC에서 아래를 실행하면 `dist\MyZoom설치.zip`(약 60MB, .NET 런타임을 넣은 exe 하나)이 생긴다.
-받는 PC에서는 zip 을 풀고 `설치.bat` 을 더블클릭하면 같은 위치에 설치된다(빌드 없음, .NET 필요 없음). 제거는 `제거.bat`.
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\make-package.ps1
-```
+코드를 커밋한 뒤 `.\release.ps1 1.2.0 "바뀐 내용"` → `v1.2.0` 태그가 올라가고 GitHub Actions 가 빌드해 릴리즈를 만든다(3~5분).
+설치된 MyZoom 들은 알아서 그 버전으로 바뀐다. 직접 빌드한 개발판(버전 0.0.0)은 자동 업데이트하지 않는다.
+이 PC 에 소스로 바로 설치하려면 `install.bat` (.NET 9 SDK 필요).
 
 원격 데스크톱으로 발표할 때는 원격 PC가 아니라 **내 앞 PC(노트북)에 MyZoom 을 켜 두고** 확대한다. 원격 PC에서 확대하면 바뀐 화면 전체를 다시 보내야 해서 끊긴다.
 원격 데스크톱 연결 → 옵션 표시 → 로컬 리소스 → 「Windows 키 조합 적용」을 「이 컴퓨터」로 두면 원격 창이 앞에 있어도 노트북 쪽 단축키가 먹을 가능성이 높다(미리 눌러 볼 것).

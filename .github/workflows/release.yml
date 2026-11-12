@@ -1,0 +1,55 @@
+# v로 시작하는 태그(예: v1.1.0)를 올리면 Windows 에서 빌드해 GitHub 릴리즈를 만든다.
+# 릴리즈 파일:
+#   MyZoom.exe        프로그램 (.NET 포함 단일 exe). 받아서 더블클릭하면 설치를 묻는다. 자동 업데이트도 이 파일을 받는다
+#   version.txt       최신 버전 번호 (설치된 MyZoom 이 6시간마다 확인)
+#   MyZoom-Setup.cmd  설치 파일 — 최신 MyZoom.exe 를 받아 설치 (브라우저 경고가 덜함)
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Build
+        shell: pwsh
+        run: |
+          $v = "$env:GITHUB_REF_NAME".TrimStart('v')
+          dotnet publish MyZoom.csproj -c Release -r win-x64 --self-contained true `
+            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true `
+            -p:DebugType=none -p:Version=$v -o out --nologo
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          New-Item -ItemType Directory rel | Out-Null
+          Copy-Item out/MyZoom.exe rel/
+          [IO.File]::WriteAllText("$PWD/rel/version.txt", $v)
+          Copy-Item scripts/MyZoom-Setup.cmd rel/
+          $fv = (Get-Item rel/MyZoom.exe).VersionInfo.FileVersion
+          Write-Host "MyZoom.exe FileVersion = $fv"
+          if (-not $fv.StartsWith($v)) { Write-Error "exe 버전($fv)이 태그($v)와 다릅니다"; exit 1 }
+
+      - name: Notes
+        shell: bash
+        run: |
+          git fetch --tags --force
+          git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > notes.md
+
+      - name: Publish
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" rel/MyZoom.exe rel/version.txt rel/MyZoom-Setup.cmd \
+            --title "MyZoom $GITHUB_REF_NAME" --notes-file notes.md

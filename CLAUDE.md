@@ -13,6 +13,8 @@
 - **이름:** MyZoom (폴더 myzoom)
 - **목적:** ZoomIt 같은 화면 확대·판서·발표 보조 도구를 엄태식 선생님 개인용으로. 연수·수업·영상 제작 때 설명용.
 - **현재 단계:** 알파 (본인 PC 사용)
+- **배포:** 공개 GitHub `uts1002/myzoom` + 릴리즈 (pchelper 와 같은 방식). 설치된 앱이 켜고 30초 뒤·6시간마다 `releases/latest/download/version.txt` 확인 → `MyZoom.exe` 받아 이름 바꾸기(.old)로 교체 후 재시작.
+  exe 하나가 `--install`/`--uninstall` 을 처리하고 '설치된 앱'(HKCU Uninstall) 에 등록. 제작자 eompage.com 은 설정 아래 막대·일반 탭.
 
 ---
 
@@ -53,7 +55,8 @@ tools/make-icon.ps1  Assets/myzoom.ico 생성
 ```bash
 dotnet build                                              # 빌드 (실행 중이면 MyZoom 종료 후)
 bin/Debug/net9.0-windows/MyZoom.exe --selftest <폴더>      # 창 없이 주요 화면 PNG 렌더링 + 그리기 로직 검사
-install.bat                                               # Release 빌드 후 %LOCALAPPDATA%\Programs\MyZoom 설치
+install.bat                                               # (개발) 소스 빌드 후 MyZoom.exe --install — 개발판 0.0.0 은 자동 업데이트 안 함
+.\release.ps1 1.2.0 "바뀐 내용"                          # 태그 v1.2.0 푸시 → Actions 가 릴리즈(MyZoom.exe·version.txt·MyZoom-Setup.cmd) 생성
 dotnet run -c Release --project tools/uitest -- <폴더> 120  # 설치본 실제 조작 테스트: 2분 유휴 후 시작, 사람 입력 감지 시 중단
 ```
 
@@ -96,4 +99,5 @@ UI 테스트(tools/uitest)는 사용자가 자리를 비웠을 때만 돈다. �
 - 백그라운드 프로세스에서 띄운 창은 포그라운드 권한이 없어 다른 창 뒤에 깔린다 → 두 번째 실행 시 `AllowSetForegroundWindow(-1)` 후 신호, 설정 창은 Topmost 토글로 올림.
 - 사용자가 PC 를 쓰는 중에는 마우스·키 입력을 흉내 내는 UI 테스트가 서로 충돌한다 → `--selftest` 렌더링 테스트로 먼저 확인.
 - UI 테스트 프로세스가 DPI 비인식이면 GetWindowRect 가 축소 좌표(1707x960)를 줘서 정상 동작을 FAIL 로 오판했다 → SetProcessDpiAwarenessContext(-4) 먼저.
+- PowerShell `Start-Process -Wait` 는 자식 프로세스까지 기다려서, 설치 후 켜지는 MyZoom 때문에 멈췄다 → `(Start-Process ... -PassThru).WaitForExit()`.
 - WinForms 와 WPF 를 같이 쓰면 `Application`·`Image`·`Color` 등 이름이 겹친다 → csproj 에서 WinForms/Drawing 전역 using 제거, `WinForms` 별칭만 사용.

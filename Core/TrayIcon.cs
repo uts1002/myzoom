@@ -47,7 +47,7 @@ public sealed class TrayIcon : IDisposable
         var s = App.Settings;
         var menu = new WinForms.ContextMenuStrip { ShowCheckMargin = true, ShowImageMargin = false };
 
-        var title = new WinForms.ToolStripLabel("MyZoom") { Font = new System.Drawing.Font(menu.Font, System.Drawing.FontStyle.Bold) };
+        var title = new WinForms.ToolStripLabel($"MyZoom {AppInfo.VersionText}") { Font = new System.Drawing.Font(menu.Font, System.Drawing.FontStyle.Bold) };
         menu.Items.Add(title);
         menu.Items.Add(new WinForms.ToolStripSeparator());
 
@@ -74,6 +74,8 @@ public sealed class TrayIcon : IDisposable
         menu.Items.Add(new WinForms.ToolStripSeparator());
         Item("저장 폴더 열기", null, _app.OpenSaveFolder, delayed: false);
         Item("설정...", null, _app.ShowSettings, delayed: false);
+        if (AppInfo.CanSelfUpdate)
+            Item("업데이트 확인", null, async () => _app.Toast(await _app.CheckForUpdateAsync(manual: true)), delayed: false);
         Item("종료", null, _app.ExitApp, delayed: false);
 
         menu.Opening += (_, _) =>

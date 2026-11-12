@@ -171,6 +171,8 @@ public sealed class AppSettings
 
     // ---- 일반 ----
     public bool ShowStartupNotice { get; set; } = true;
+    /// <summary>새 버전이 나오면 알아서 받아서 바꾼다 (켜고 30초 뒤, 그 뒤 6시간마다 확인).</summary>
+    public bool AutoUpdate { get; set; } = true;
 
     // ===================================================================
 

@@ -11,7 +11,8 @@
     <ApplicationIcon>Assets\myzoom.ico</ApplicationIcon>
     <AssemblyName>MyZoom</AssemblyName>
     <RootNamespace>MyZoom</RootNamespace>
-    <Version>1.0.0</Version>
+    <!-- 0.0.0 = 직접 빌드한 개발판(자동 업데이트 안 함). 릴리즈는 태그 버전으로 빌드된다 -->
+    <Version>0.0.0</Version>
     <Product>MyZoom</Product>
     <Description>화면 확대·판서·발표 보조 도구</Description>
     <SatelliteResourceLanguages>ko</SatelliteResourceLanguages>

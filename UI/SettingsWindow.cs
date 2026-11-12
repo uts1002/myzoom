@@ -3,6 +3,7 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
@@ -77,6 +78,12 @@ public sealed class SettingsWindow : Window
         var bottom = new DockPanel { LastChildFill = true };
         DockPanel.SetDock(reset, Dock.Left);
         bottom.Children.Add(reset);
+        // 제작자 표시는 늘 보이게 아래 막대에 (pchelper 와 같게)
+        var creditBar = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(14, 0, 0, 0), Foreground = Muted, FontSize = 12 };
+        creditBar.Inlines.Add(new Run($"MyZoom {AppInfo.VersionText} · 제작자 "));
+        creditBar.Inlines.Add(LinkInline("eompage.com", AppInfo.CreditUrl));
+        DockPanel.SetDock(creditBar, Dock.Left);
+        bottom.Children.Add(creditBar);
         var right = new StackPanel { Orientation = Orientation.Horizontal };
         right.Children.Add(save);
         right.Children.Add(close);
@@ -110,6 +117,24 @@ public sealed class SettingsWindow : Window
             Background = Brushes.White,
         },
     };
+
+    static TextBlock Link(string text, string url)
+    {
+        var tb = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
+        tb.Inlines.Add(LinkInline(text, url));
+        return tb;
+    }
+
+    static Hyperlink LinkInline(string text, string url)
+    {
+        var h = new Hyperlink(new Run(text)) { NavigateUri = new Uri(url), ToolTip = url };
+        h.RequestNavigate += (_, e) =>
+        {
+            try { Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true }); } catch { }
+            e.Handled = true;
+        };
+        return h;
+    }
 
     static StackPanel Page() => new() { Margin = new Thickness(20, 16, 20, 20) };
 
@@ -362,9 +387,31 @@ public sealed class SettingsWindow : Window
         Row(p, "설정 파일 (settings.json)", openCfg);
         Note(p, AppSettings.FilePath);
 
-        Header(p, "정보");
-        var ver = Assembly.GetExecutingAssembly().GetName().Version;
-        Note(p, $"MyZoom {ver?.ToString(3)}\n실행 파일: {Environment.ProcessPath}");
+        Header(p, "버전·업데이트");
+        Row(p, "지금 버전", new TextBlock { Text = $"MyZoom {AppInfo.VersionText}", FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
+        Check(p, "새 버전이 나오면 자동으로 업데이트", () => _s.AutoUpdate, v => _s.AutoUpdate = v);
+        var result = new TextBlock { Foreground = Muted, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0) };
+        var check = new Button { Content = "지금 업데이트 확인", Padding = new Thickness(12, 4, 12, 4), HorizontalAlignment = HorizontalAlignment.Left };
+        check.Click += async (_, _) =>
+        {
+            check.IsEnabled = false;
+            result.Text = "확인하는 중…";
+            result.Text = await ((App)Application.Current).CheckForUpdateAsync(manual: true);
+            check.IsEnabled = true;
+        };
+        var checkRow = new StackPanel { Orientation = Orientation.Horizontal };
+        checkRow.Children.Add(check);
+        checkRow.Children.Add(result);
+        Row(p, "업데이트", checkRow);
+        Note(p, "새 버전은 켜고 30초 뒤, 그 뒤로 6시간마다 확인합니다. 받은 업데이트는 줌·그리기·타이머를 쓰지 않을 때 바뀝니다(잠깐 다시 시작).");
+        Row(p, "새 버전 소식", Link("GitHub 릴리즈 보기", AppInfo.ReleasesUrl));
+
+        Header(p, "만든 사람");
+        var credit = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
+        credit.Inlines.Add(new Run($"{AppInfo.CreditName} · "));
+        credit.Inlines.Add(LinkInline("eompage.com", AppInfo.CreditUrl));
+        Row(p, "제작자", credit);
+        Note(p, $"실행 파일: {Environment.ProcessPath}");
         return p;
     }
 

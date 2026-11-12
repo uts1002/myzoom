@@ -14,11 +14,11 @@ public static class StartupRegistration
         return key?.GetValue(Name) is string;
     }
 
-    public static void Set(bool enabled)
+    public static void Set(bool enabled, string? exe = null)
     {
         using var key = Registry.CurrentUser.CreateSubKey(RunKey);
         if (enabled)
-            key.SetValue(Name, $"\"{Environment.ProcessPath}\"");
+            key.SetValue(Name, $"\"{exe ?? Environment.ProcessPath}\"");
         else if (key.GetValue(Name) != null)
             key.DeleteValue(Name);
     }
