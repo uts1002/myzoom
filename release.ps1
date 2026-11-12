@@ -5,10 +5,13 @@ param(
     [Parameter(Mandatory)][string]$Version,
     [Parameter(Mandatory)][string]$Notes
 )
-$ErrorActionPreference = 'Stop'
+# git 은 진행 메시지를 오류 출력으로 내보내므로 Stop 을 쓰지 않고 종료 코드로 확인한다 (PowerShell 5.1)
+$ErrorActionPreference = 'Continue'
+function Git-Run { & git @args 2>&1 | ForEach-Object { "$_" }; if ($LASTEXITCODE -ne 0) { throw "git $($args -join ' ') 실패" } }
+
 [void][version]$Version
 if (git status --porcelain --untracked-files=no) { throw '커밋하지 않은 변경이 있어요. 먼저 커밋하세요.' }
-git tag -a "v$Version" -m $Notes
-git push origin HEAD
-git push origin "v$Version"
-Write-Host "v$Version 태그를 올렸어요. 릴리즈는 3~5분 뒤 https://github.com/uts1002/myzoom/releases 에 생겨요."
+Git-Run tag -a "v$Version" -m $Notes
+Git-Run push origin HEAD
+Git-Run push origin "v$Version"
+Write-Host "v$Version 태그를 올렸어요. 릴리즈는 3~5분 뒤 https://github.com/uts1002/myzoom/releases 에 생겨요." -ForegroundColor Green

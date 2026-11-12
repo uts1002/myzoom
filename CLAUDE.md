@@ -100,4 +100,6 @@ UI 테스트(tools/uitest)는 사용자가 자리를 비웠을 때만 돈다. �
 - 사용자가 PC 를 쓰는 중에는 마우스·키 입력을 흉내 내는 UI 테스트가 서로 충돌한다 → `--selftest` 렌더링 테스트로 먼저 확인.
 - UI 테스트 프로세스가 DPI 비인식이면 GetWindowRect 가 축소 좌표(1707x960)를 줘서 정상 동작을 FAIL 로 오판했다 → SetProcessDpiAwarenessContext(-4) 먼저.
 - PowerShell `Start-Process -Wait` 는 자식 프로세스까지 기다려서, 설치 후 켜지는 MyZoom 때문에 멈췄다 → `(Start-Process ... -PassThru).WaitForExit()`.
+- release.ps1 에서 $ErrorActionPreference=Stop 이면 git 의 진행 메시지(stderr)를 오류로 보고 태그만 만들고 멈췄다 → Continue + $LASTEXITCODE 로 확인.
+- 처음 workflow 파일을 올릴 때 gh 토큰에 workflow 권한이 없으면 push 가 거절된다 → gh auth refresh -s workflow.
 - WinForms 와 WPF 를 같이 쓰면 `Application`·`Image`·`Color` 등 이름이 겹친다 → csproj 에서 WinForms/Drawing 전역 using 제거, `WinForms` 별칭만 사용.
