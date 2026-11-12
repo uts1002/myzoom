@@ -32,6 +32,16 @@ public static class ScreenHelper
             s.DeviceName);
     }
 
+    /// <summary>모든 모니터 (왼쪽 위 → 오른쪽 아래 순).</summary>
+    public static List<MonitorArea> All() =>
+        WinForms.Screen.AllScreens
+            .OrderBy(s => s.Bounds.Y).ThenBy(s => s.Bounds.X)
+            .Select(s => new MonitorArea(
+                new Int32Rect(s.Bounds.X, s.Bounds.Y, s.Bounds.Width, s.Bounds.Height),
+                new Int32Rect(s.WorkingArea.X, s.WorkingArea.Y, s.WorkingArea.Width, s.WorkingArea.Height),
+                s.DeviceName))
+            .ToList();
+
     public static MonitorArea FromCursor()
     {
         var (x, y) = CursorPos();

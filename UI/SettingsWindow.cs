@@ -312,7 +312,7 @@ public sealed class SettingsWindow : Window
             () => _s.TimerBackground, v => _s.TimerBackground = v);
         Check(p, "끝나는 시각 보이기", () => _s.TimerShowEndTime, v => _s.TimerShowEndTime = v);
         Check(p, "끝나면 알림음", () => _s.TimerSound, v => _s.TimerSound = v);
-        Note(p, "타이머 화면에서:  ↑↓ 1분 · ←→ 10초 · 휠 1분 · Space 일시정지 · R 다시 시작 · M 작은 창(끌어서 이동) · Esc 닫기");
+        Note(p, "타이머가 떠 있을 때 아래 버튼이나 키로 바로 바꿀 수 있습니다:  T 제목 바꾸기(바꾼 제목은 여기에도 저장) · Tab 다른 화면으로 · ↑↓ 1분 · ←→ 10초 · 휠 1분 · Space 일시정지 · R 다시 시작 · M 작은 창 · Esc 닫기");
         return p;
     }
 

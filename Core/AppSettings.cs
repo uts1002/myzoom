@@ -178,6 +178,8 @@ public sealed class AppSettings
     {
         WriteIndented = true,
         Converters = { new JsonStringEnumConverter() },
+        // 설정 파일을 열어 봐도 한글이 그대로 보이게 (쉬 같은 코드로 바꾸지 않음)
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
     public static string Folder =>

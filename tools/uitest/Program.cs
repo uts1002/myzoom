@@ -91,6 +91,7 @@ static class P
             if (Only != null && Only.Contains("8"))
                 for (int i = 0; i < 4; i++) Group("8 영역 캡처(반복)", TestSnip);
             Group("9 두 번째 실행 → 설정 창", TestSecondInstance);
+            Group("10 타이머 안에서 제목·화면 이동", TestTimerControls);
         }
         finally
         {
@@ -294,6 +295,81 @@ static class P
         Shot("31_snip_toast");
     }
 
+    static void TestTimerControls()
+    {
+        var cfg = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"MyZoom\settings.json");
+        string original = File.ReadAllText(cfg);
+        try
+        {
+            Move(CX, CY);
+            Key("ctrl+3"); Thread.Sleep(1200);
+            RequireFg("타이머가 포그라운드가 아님");
+            Shot("40_timer_bar");
+
+            // 제목 바꾸기: T → 입력 → Enter
+            Key("t"); Thread.Sleep(400);
+            RequireFg("제목 입력 중 포그라운드 아님");
+            Key("ctrl+a");
+            TypeUnicode("모둠 활동 시간");
+            Thread.Sleep(200);
+            Shot("41_timer_title_editing");
+            Key("enter"); Thread.Sleep(500);
+            Shot("42_timer_title_done");
+            string saved = System.Text.Json.JsonDocument.Parse(File.ReadAllText(cfg)).RootElement.GetProperty("TimerMessage").GetString();
+            Expect(saved == "모둠 활동 시간", $"제목이 설정 파일에 저장됨 (다음 타이머에도 유지) ('{saved}')");
+
+            // 다른 화면으로: Tab
+            var before = ZoomWindows().FirstOrDefault(x => x.Full)?.Rect;
+            Key("tab"); Thread.Sleep(1200);
+            var after = ZoomWindows().FirstOrDefault(x => x.Full)?.Rect;
+            Expect(before != null && after != null && after.Value.Top != before.Value.Top,
+                $"Tab 으로 다른 모니터로 이동 ({before} → {after})");
+            ShotRect("43_timer_on_other_monitor", after ?? Rectangle.Empty);
+            RequireFg("다른 모니터에서 포그라운드 아님");
+            Key("up"); Thread.Sleep(300);  // 옮긴 뒤에도 키가 먹는지
+            Key("tab"); Thread.Sleep(1200);
+            var back = ZoomWindows().FirstOrDefault(x => x.Full)?.Rect;
+            Expect(back != null && before != null && back.Value == before.Value, $"Tab 한 번 더 → 원래 모니터 ({back})");
+
+            // 작은 창 → 다른 화면 → 다시 크게
+            Key("m"); Thread.Sleep(700);
+            var mini = ZoomWindows().FirstOrDefault();
+            Key("tab"); Thread.Sleep(900);
+            var mini2 = ZoomWindows().FirstOrDefault();
+            Expect(mini != null && mini2 != null && !mini2.Full && mini2.Rect.Top != mini.Rect.Top, $"작은 창도 Tab 으로 다른 모니터 ({mini?.Rect} → {mini2?.Rect})");
+            ShotRect("44_timer_mini_other", mini2?.Rect ?? Rectangle.Empty);
+            Key("m"); Thread.Sleep(1000);
+            var big = ZoomWindows().FirstOrDefault(x => x.Full);
+            Expect(big != null && mini2 != null && big.Rect.Contains(mini2.Rect.Location), $"크게 하면 작은 창이 있던 모니터에서 ({big?.Rect})");
+            RequireFg("다시 크게 했는데 포그라운드 아님");
+            Key("esc"); Thread.Sleep(600);
+            Expect(!ZoomWindows().Any(), "Esc 로 닫힘");
+        }
+        finally
+        {
+            // 설정의 타이머 제목을 원래대로 (MyZoom 은 다음 저장 때 메모리 값을 다시 쓰므로 타이머로 되돌린다)
+            if (!File.ReadAllText(cfg).Equals(original))
+            {
+                L("  (타이머 제목을 원래대로 되돌림)");
+                RestoreTimerTitle(original);
+            }
+        }
+    }
+
+    static void RestoreTimerTitle(string originalJson)
+    {
+        string title = "쉬는 시간";
+        try { title = System.Text.Json.JsonDocument.Parse(originalJson).RootElement.GetProperty("TimerMessage").GetString() ?? title; } catch { }
+        Move(CX, CY);
+        RawKey("ctrl+3"); Thread.Sleep(1200);
+        if (!IsZoomFg()) { L("  !! 제목 복원 실패 — 설정에서 직접 바꿔 주세요"); return; }
+        RawKey("t"); Thread.Sleep(400);
+        RawKey("ctrl+a");
+        TypeUnicodeRaw(title);
+        RawKey("enter"); Thread.Sleep(400);
+        RawKey("esc"); Thread.Sleep(500);
+    }
+
     static void TestSecondInstance()
     {
         Process.Start(ExePath);
@@ -482,6 +558,39 @@ static class P
         for (int d = Math.Abs(delta); d > 0; d -= 120) { mouse_event(0x800, 0, 0, step, UIntPtr.Zero); Thread.Sleep(80); }
         Ensure();
     }
+
+    static void ShotRect(string name, Rectangle r)
+    {
+        Ensure();
+        if (r.Width <= 0) return;
+        using var full = new Bitmap(r.Width, r.Height);
+        using (var g = Graphics.FromImage(full)) g.CopyFromScreen(r.Left, r.Top, 0, 0, r.Size);
+        int w = Math.Min(1280, r.Width), h = r.Height * w / r.Width;
+        using var half = new Bitmap(w, h);
+        using (var g = Graphics.FromImage(half)) g.DrawImage(full, 0, 0, w, h);
+        half.Save(Path.Combine(Out, name + ".png"), ImageFormat.Png);
+    }
+
+    // IME(한/영) 상태와 상관없이 글자를 그대로 입력
+    static void TypeUnicode(string text)
+    {
+        foreach (char c in text) { RequireFg("글자 입력 대상이 MyZoom 이 아님"); SendChar(c); Thread.Sleep(30); }
+        Ensure();
+    }
+
+    static void TypeUnicodeRaw(string text) { foreach (char c in text) { SendChar(c); Thread.Sleep(30); } }
+
+    static void SendChar(char c)
+    {
+        var inputs = new INPUT[2];
+        inputs[0].type = 1; inputs[0].ki.wScan = c; inputs[0].ki.dwFlags = 0x0004;            // KEYEVENTF_UNICODE
+        inputs[1].type = 1; inputs[1].ki.wScan = c; inputs[1].ki.dwFlags = 0x0004 | 0x0002;   // + KEYUP
+        SendInput(2, inputs, Marshal.SizeOf<INPUT>());
+    }
+
+    [StructLayout(LayoutKind.Sequential)] struct KEYBDINPUT { public ushort wVk, wScan; public uint dwFlags, time; public IntPtr extra; }
+    [StructLayout(LayoutKind.Explicit, Size = 40)] struct INPUT { [FieldOffset(0)] public uint type; [FieldOffset(8)] public KEYBDINPUT ki; }
+    [DllImport("user32.dll")] static extern uint SendInput(uint n, INPUT[] inputs, int size);
 
     static void Shot(string name)
     {
