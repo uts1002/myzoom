@@ -56,13 +56,23 @@ final class SpotlightView: NSView {
         let shade = CGColor(colorSpace: srgb, components: [0, 0, 0, dim])!
         let clear = CGColor(colorSpace: srgb, components: [0, 0, 0, 0])!
         ctx.setFillColor(shade)
-        ctx.fill(bounds)
         guard let c = center,
               let g = CGGradient(colorsSpace: srgb, colors: [clear, clear, shade] as CFArray, locations: [0, 0.86, 1])
-        else { return }
+        else {
+            ctx.fill(bounds)
+            return
+        }
+        // 원 바깥만 어둡게 (덮어쓰기 없이 — 아래 화면을 지우지 않는다)
+        let circle = CGRect(x: c.x - radius, y: c.y - radius, width: radius * 2, height: radius * 2)
+        ctx.addRect(bounds)
+        ctx.addEllipse(in: circle)
+        ctx.fillPath(using: .evenOdd)
         // 가장자리를 부드럽게 — 안쪽 86% 는 완전히 밝고 바깥으로 갈수록 어두워진다
-        ctx.setBlendMode(.copy)
+        ctx.saveGState()
+        ctx.addEllipse(in: circle)
+        ctx.clip()
         ctx.drawRadialGradient(g, startCenter: c, startRadius: 0, endCenter: c, endRadius: radius, options: [])
+        ctx.restoreGState()
     }
 }
 
