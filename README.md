@@ -15,6 +15,22 @@ ZoomIt 의 기능을 기본으로, 다른 줌·판서 도구(Epic Pen, gInk, Poi
 - 제거: 설정 > 앱 > 설치된 앱 > MyZoom > 제거 (설정까지 지울지 물어봄)
 - 브라우저에서 받은 exe 는 서명이 없어 "Windows의 PC 보호" 경고가 뜰 수 있다 → 「추가 정보 → 실행」. `MyZoom-Setup.cmd` 로 설치하면 이 경고가 덜하다
 
+### 맥 (macOS 14 Sonoma 이상)
+
+터미널(⌘+Space → "터미널")에 아래 한 줄을 붙여넣고 엔터.
+
+```bash
+curl -fsSL https://github.com/uts1002/myzoom/releases/latest/download/install-mac.sh | bash
+```
+
+- `~/Applications/MyZoom.app` 에 설치하고 로그인할 때 자동 실행, 화면 오른쪽 위 메뉴 막대에 돋보기 아이콘.
+- 맥판 1차 기능: **⌃1 화면 확대 · ⌃2 그리기 · ⌃3 타이머** (control 키 + 숫자). 그리기 키는 Windows 판과 같고,
+  펜 드래그 변형은 `Shift` 직선 · `⌘` 사각형 · `⌘⇧` 화살표 · `⌥` 원. 저장·복사·되돌리기는 `⌘S` `⌘C` `⌘Z`.
+- 확대·그리기는 처음 쓸 때 **화면 기록 권한**을 켜야 한다 (앱이 설정 화면을 열어 준다 → MyZoom 켜기 → 다시 시작).
+  서명 없는 앱이라 업데이트 뒤 다시 물으면 목록에서 MyZoom 을 껐다 켠다.
+- 자동 업데이트는 Windows 판과 같은 릴리즈의 `version.txt` 를 보고 `MyZoom-mac.zip` 으로 바꿔 끼운다.
+- 아직 없는 것: 라이브 줌, 스포트라이트, 영역 캡처, 커서 강조, 키 입력 표시, 글자 도구, 단축키 바꾸기.
+
 ### 새 버전 내보내기 (개발)
 
 코드를 커밋한 뒤 `.\release.ps1 1.2.0 "바뀐 내용"` → `v1.2.0` 태그가 올라가고 GitHub Actions 가 빌드해 릴리즈를 만든다(3~5분).

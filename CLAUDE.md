@@ -40,6 +40,17 @@ scripts/             install.ps1 / uninstall.ps1 (install.bat / uninstall.bat �
 tools/make-icon.ps1  Assets/myzoom.ico 생성
 ```
 
+### 3.1 맥판 (`mac/`)
+
+- Windows 판과 코드를 공유하지 않는 별도 구현: **Swift Package (Xcode 프로젝트 없음), AppKit, macOS 14+, Swift 5 언어 모드**.
+- 개발 PC(Windows)에는 맥이 없다. **빌드·확인은 GitHub Actions 로만 한다**:
+  `mac/` 를 push 하면 `mac-check.yml` 이 빌드 → `--selftest` 로 그리기·확대·타이머 화면 PNG 렌더링 → 15초 실행 확인.
+  `gh run download <id> -n mac-selftest` 로 PNG 를 받아 눈으로 본다. 실제 맥 확인은 사용자 맥북에서.
+- 전역 단축키는 Carbon `RegisterEventHotKey`(권한 불필요), 화면 캡처는 ScreenCaptureKit(화면 기록 권한).
+  키는 IME 영향을 받지 않게 `keyCode`(kVK_*) 로 판단한다.
+- 릴리즈: 태그 하나로 `release.yml` 이 Windows exe + `MyZoom-mac.zip` + `install-mac.sh` 를 같이 올린다. 맥 빌드가 실패해도 Windows 릴리즈는 나간다.
+- 앱 묶음은 `mac/scripts/build-app.sh` 가 만든다 (유니버설, ad-hoc 서명, Info.plist 의 LSUIElement 로 Dock 아이콘 없음).
+
 ---
 
 ## 4. 주요 데이터 모델

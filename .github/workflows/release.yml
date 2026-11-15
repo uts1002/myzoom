@@ -1,8 +1,11 @@
-# v로 시작하는 태그(예: v1.1.0)를 올리면 Windows 에서 빌드해 GitHub 릴리즈를 만든다.
+# v로 시작하는 태그(예: v1.1.0)를 올리면 Windows·맥에서 빌드해 GitHub 릴리즈를 만든다.
 # 릴리즈 파일:
-#   MyZoom.exe        프로그램 (.NET 포함 단일 exe). 받아서 더블클릭하면 설치를 묻는다. 자동 업데이트도 이 파일을 받는다
-#   version.txt       최신 버전 번호 (설치된 MyZoom 이 6시간마다 확인)
-#   MyZoom-Setup.cmd  설치 파일 — 최신 MyZoom.exe 를 받아 설치 (브라우저 경고가 덜함)
+#   MyZoom.exe        Windows 프로그램 (.NET 포함 단일 exe). 받아서 더블클릭하면 설치를 묻는다. 자동 업데이트도 이 파일을 받는다
+#   version.txt       최신 버전 번호 (설치된 MyZoom 이 6시간마다 확인 — Windows·맥 공통)
+#   MyZoom-Setup.cmd  Windows 설치 파일 — 최신 MyZoom.exe 를 받아 설치 (브라우저 경고가 덜함)
+#   MyZoom-mac.zip    맥 앱 (MyZoom.app, 유니버설). 맥 자동 업데이트도 이 파일을 받는다
+#   install-mac.sh    맥 설치 — curl -fsSL .../releases/latest/download/install-mac.sh | bash
+# 맥 빌드가 실패해도 Windows 릴리즈는 나간다 (맥 파일만 빠짐).
 name: release
 
 on:
@@ -13,12 +16,10 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -40,16 +41,56 @@ jobs:
           Write-Host "MyZoom.exe FileVersion = $fv"
           if (-not $fv.StartsWith($v)) { Write-Error "exe 버전($fv)이 태그($v)와 다릅니다"; exit 1 }
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: rel/
+
+  mac:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: bash mac/scripts/build-app.sh "${GITHUB_REF_NAME#v}"
+
+      - name: Self test
+        run: mac/dist/MyZoom.app/Contents/MacOS/MyZoom --selftest selftest-out
+
+      - name: Collect
+        run: |
+          mkdir rel
+          cp mac/dist/MyZoom-mac.zip mac/scripts/install-mac.sh rel/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-mac
+          path: rel/
+
+  publish:
+    needs: [windows, mac]
+    if: ${{ always() && needs.windows.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: rel
+          merge-multiple: true
+
       - name: Notes
-        shell: bash
         run: |
           git fetch --tags --force
           git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > notes.md
+          ls -la rel
 
       - name: Publish
-        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" rel/MyZoom.exe rel/version.txt rel/MyZoom-Setup.cmd \
+          gh release create "$GITHUB_REF_NAME" rel/* \
             --title "MyZoom $GITHUB_REF_NAME" --notes-file notes.md
