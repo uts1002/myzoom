@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 
 /// `MyZoom --selftest <폴더>` — 권한 없이 그리기·확대·타이머 화면을 PNG 로 그리고, 계산 로직을 확인한다.
 /// GitHub Actions 에서 돌려 결과 PNG 를 artifact 로 올린다 (맥 없이 화면을 눈으로 확인하는 용도).
@@ -54,6 +55,31 @@ enum SelfTest {
             save(t, dir, name)
         }
 
+        // 발표 보조 — 가짜 화면 위에 겹쳐 그린다
+        let spot = SpotlightView(frame: frame)
+        spot.center = CGPoint(x: 420, y: 520)
+        save(layered(screen, size, spot), dir, "08_spotlight.png")
+
+        let cursor = CursorHighlightView(frame: CGRect(x: 0, y: 0, width: CursorHighlightView.size, height: CursorHighlightView.size))
+        let fixedNow: CFTimeInterval = 100
+        cursor.now = { fixedNow }
+        cursor.rings = [.init(start: fixedNow - 0.12, color: NSColor(hex: 0xE53935)),
+                        .init(start: fixedNow - 0.3, color: NSColor(hex: 0x1E88E5))]
+        cursor.setFrameOrigin(CGPoint(x: 560, y: 380))
+        save(layered(screen, size, cursor), dir, "09_cursor_highlight.png")
+
+        let keys = KeystrokeView(frame: CGRect(x: 0, y: 0, width: size.width, height: 110))
+        keys.now = { fixedNow }
+        keys.add("⌘ C")
+        keys.add("⌘ V")
+        keys.add("⌘ V")
+        keys.add("esc")
+        save(layered(screen, size, keys), dir, "10_keystrokes.png")
+
+        let toast = ToastView(text: "클립보드에 복사했어요 — ⌘V 로 붙여넣기")
+        toast.setFrameOrigin(CGPoint(x: (size.width - toast.frame.width) / 2, y: size.height * 0.18))
+        save(layered(screen, size, toast), dir, "11_toast.png")
+
         if failures.isEmpty {
             let count = (try? FileManager.default.contentsOfDirectory(atPath: dir.path).count) ?? 0
             print("selftest OK — PNG \(count)장")
@@ -61,6 +87,17 @@ enum SelfTest {
         }
         failures.forEach { print("FAIL: \($0)") }
         return 1
+    }
+
+    /// 가짜 화면 위에 투명한 보조 화면을 얹은 뷰
+    private static func layered(_ screen: CGImage, _ size: CGSize, _ overlay: NSView) -> NSView {
+        let root = NSView(frame: CGRect(origin: .zero, size: size))
+        let iv = NSImageView(frame: root.bounds)
+        iv.image = NSImage(cgImage: screen, size: size)
+        iv.imageScaling = .scaleAxesIndependently
+        root.addSubview(iv)
+        root.addSubview(overlay)
+        return root
     }
 
     private static func expect(_ ok: Bool, _ what: String) {
@@ -72,6 +109,13 @@ enum SelfTest {
         expect(Updater.isNewer("1.10.0", than: "1.9.0"), "1.10.0 > 1.9.0 (문자열 비교 아님)")
         expect(!Updater.isNewer("1.1.0", than: "1.1.0"), "같은 버전은 새 버전 아님")
         expect(!Updater.isNewer("1.1", than: "1.1.0"), "1.1 == 1.1.0")
+
+        expect(KeyNames.describe(keyCode: kVK_ANSI_C, flags: [.command]) == "⌘ C", "⌘C 표시")
+        expect(KeyNames.describe(keyCode: kVK_ANSI_Z, flags: [.command, .shift]) == "⇧⌘ Z", "⇧⌘Z 표시 (맥 순서)")
+        expect(KeyNames.describe(keyCode: kVK_ANSI_C, flags: []) == nil, "일반 타자는 안 보임")
+        expect(KeyNames.describe(keyCode: kVK_ANSI_C, flags: [.shift]) == nil, "Shift 글자도 안 보임")
+        expect(KeyNames.describe(keyCode: kVK_Escape, flags: []) == "esc", "특수 키는 보임")
+        expect(KeyNames.describe(keyCode: kVK_LeftArrow, flags: [.shift]) == "⇧ ←", "⇧← 표시")
 
         let line = Stroke(tool: .line, color: .red, width: 4, points: [CGPoint(x: 0, y: 0), CGPoint(x: 100, y: 0)])
         expect(line.hit(CGPoint(x: 50, y: 5), radius: 5), "직선 근처는 지우개에 걸림")

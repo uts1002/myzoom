@@ -29,6 +29,12 @@ enum Settings {
         set { d.set(newValue, forKey: "shownWelcome") }
     }
 
+    /// ⌃5 스포트라이트 밝은 원 반지름 (Windows 판 기본 160)
+    static var spotlightRadius: CGFloat {
+        get { let v = d.double(forKey: "spotlightRadius"); return v > 0 ? CGFloat(v) : 160 }
+        set { d.set(Double(newValue), forKey: "spotlightRadius") }
+    }
+
     /// ⌃4 라이브 줌 — 맥 확대/축소 설정 안내를 한 번 보여 줬는지
     static var shownLiveZoomGuide: Bool {
         get { d.bool(forKey: "shownLiveZoomGuide") }

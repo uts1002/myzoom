@@ -15,7 +15,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         (2, kVK_ANSI_2, "그리기", #selector(startDraw)),
         (3, kVK_ANSI_3, "타이머", #selector(startTimer)),
         (4, kVK_ANSI_4, "라이브 줌 (맥 확대/축소)", #selector(startLiveZoom)),
+        (5, kVK_ANSI_5, "스포트라이트", #selector(toggleSpotlight)),
+        (6, kVK_ANSI_6, "영역 캡처 (클립보드로)", #selector(startCapture)),
+        (7, kVK_ANSI_7, "커서·클릭 강조", #selector(toggleCursorHighlight)),
+        (8, kVK_ANSI_8, "키 입력 표시", #selector(toggleKeystrokes)),
     ]
+    private let spotlight = SpotlightController()
+    private let cursorHighlight = CursorHighlightController()
+    private let keystrokes = KeystrokeController()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         buildMenu()
@@ -26,7 +33,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             if !ok { failedHotkeys.append("⌃\(s.id) \(s.label)") }
         }
-        Updater.isBusy = { [weak self] in self?.overlay != nil }
+        Updater.isBusy = { [weak self] in
+            guard let self else { return false }
+            return self.overlay != nil || self.spotlight.isOn || self.cursorHighlight.isOn || self.keystrokes.isOn
+        }
         Updater.startSchedule()
         if !Settings.shownWelcome {
             Settings.shownWelcome = true
@@ -48,6 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let item = NSMenuItem(title: s.label, action: s.action, keyEquivalent: String(s.id))
             item.keyEquivalentModifierMask = .control
             item.target = self
+            item.tag = Int(s.id)
             menu.addItem(item)
         }
         menu.addItem(.separator())
@@ -74,6 +85,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
         loginMenuItem.state = LoginItem.isEnabled ? .on : .off
         autoUpdateMenuItem.state = Settings.autoUpdate ? .on : .off
+        menu.item(withTag: 5)?.state = spotlight.isOn ? .on : .off
+        menu.item(withTag: 7)?.state = cursorHighlight.isOn ? .on : .off
+        menu.item(withTag: 8)?.state = keystrokes.isOn ? .on : .off
     }
 
     // MARK: 기능
@@ -131,10 +145,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         present(win, firstResponder: view)
     }
 
+    @objc func toggleSpotlight() { spotlight.toggle() }
+    @objc func toggleCursorHighlight() { cursorHighlight.toggle() }
+
+    @objc func toggleKeystrokes() {
+        guard keystrokes.isOn || LiveZoom.canSendKeys else {
+            askForKeyPermission(reason: "⌃8 키 입력 표시는 다른 프로그램에서 누른 키를 읽어야 해서 권한이 필요해요.", retry: "⌃8")
+            return
+        }
+        keystrokes.toggle()
+    }
+
+    /// ⌃6 — 맥 기본 영역 캡처(screencapture -i -c)로 드래그한 곳을 클립보드에. Esc 로 취소.
+    @objc func startCapture() {
+        guard ScreenCapture.hasPermission else {
+            askForPermission()
+            return
+        }
+        let before = NSPasteboard.general.changeCount
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+        p.arguments = ["-i", "-c"]
+        p.terminationHandler = { _ in
+            DispatchQueue.main.async {
+                if NSPasteboard.general.changeCount != before {
+                    Toast.show("클립보드에 복사했어요 — ⌘V 로 붙여넣기")
+                }
+            }
+        }
+        do { try p.run() } catch { alert("영역 캡처를 열지 못했어요", error.localizedDescription) }
+    }
+
     /// ⌃4 — 맥 기본 확대/축소를 ⌥⌘8 로 켜고 끈다 (LiveZoom 참고).
     @objc func startLiveZoom() {
         guard LiveZoom.canSendKeys else {
-            askForKeyPermission()
+            askForKeyPermission(reason: "⌃4 라이브 줌은 맥 확대 단축키(⌥⌘8)를 MyZoom 이 대신 눌러 주는 방식이라 권한이 필요해요.", retry: "⌃4")
             return
         }
         if !Settings.shownLiveZoomGuide {
@@ -175,16 +220,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    private func askForKeyPermission() {
+    private func askForKeyPermission(reason: String, retry: String) {
         LiveZoom.requestKeyPermission()
         let a = NSAlert()
         a.messageText = "손쉬운 사용 권한이 필요해요"
         a.informativeText = """
-        ⌃4 라이브 줌은 맥 확대 단축키(⌥⌘8)를 MyZoom 이 대신 눌러 주는 방식이라 권한이 필요해요.
+        \(reason)
 
         1. [설정 열기]를 누르세요.
         2. 목록에서 MyZoom 을 켜세요. (없으면 + 를 눌러 홈 폴더 > 응용 프로그램의 MyZoom 을 추가)
-        3. 다시 ⌃4 를 누르세요. (다시 시작은 필요 없어요)
+        3. 다시 \(retry) 를 누르세요. (다시 시작은 필요 없어요)
 
         업데이트 뒤에 다시 물어보면, 목록에서 MyZoom 을 껐다가 다시 켜 주세요.
         """
@@ -255,8 +300,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ⌃2  그리기 — 지금 화면 위에 바로 판서
         ⌃3  타이머 — 쉬는 시간·활동 시간 카운트다운
         ⌃4  라이브 줌 — 맥 기본 확대/축소를 켜고 끄기 (클릭·입력 가능)
+        ⌃5  스포트라이트 — 커서 주변만 밝게 (⌥+스크롤로 크기)
+        ⌃6  영역 캡처 — 드래그한 곳을 클립보드로
+        ⌃7  커서·클릭 강조 · ⌃8 키 입력 표시 (녹화용)
 
-        확대·그리기는 처음 쓸 때 '화면 기록' 권한을, 라이브 줌은 '손쉬운 사용' 권한을 물어봐요.
+        확대·그리기·캡처는 '화면 기록' 권한을, 라이브 줌·키 입력 표시는 '손쉬운 사용' 권한을 처음에 물어봐요.
         """
         if !failedHotkeys.isEmpty {
             text += "\n\n다른 프로그램이 이미 쓰고 있어서 이 단축키는 등록하지 못했어요: \(failedHotkeys.joined(separator: ", "))\n메뉴 막대에서 눌러 쓸 수 있어요."

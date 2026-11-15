@@ -49,7 +49,9 @@ tools/make-icon.ps1  Assets/myzoom.ico 생성
 - 전역 단축키는 Carbon `RegisterEventHotKey`(권한 불필요), 화면 캡처는 ScreenCaptureKit(화면 기록 권한).
   키는 IME 영향을 받지 않게 `keyCode`(kVK_*) 로 판단한다.
 - ⌃4 라이브 줌은 직접 구현하지 않는다: 확대된 화면에서 클릭까지 되는 확대는 맥이 다른 앱에 열어 두지 않으므로,
-  맥 기본 확대/축소의 ⌥⌘8 을 CGEvent 로 대신 보낸다(`LiveZoom.swift`, 손쉬운 사용 권한). 영역 캡처·커서 강조도 맥 기본 기능으로 안내.
+  맥 기본 확대/축소의 ⌥⌘8 을 CGEvent 로 대신 보낸다(`LiveZoom.swift`, 손쉬운 사용 권한).
+- ⌃5 스포트라이트·⌃7 커서 강조·⌃8 키 입력 표시는 `Presenter.swift` — 클릭이 통과하는 투명 창(PassThroughWindow) + 전역 이벤트 모니터.
+  마우스 모니터는 권한 불필요, 키 모니터(⌃8)는 손쉬운 사용 권한. ⌃6 은 `/usr/sbin/screencapture -i -c` 를 띄운다.
 - 릴리즈: 태그 하나로 `release.yml` 이 Windows exe + `MyZoom-mac.zip` + `install-mac.sh` 를 같이 올린다. 맥 빌드가 실패해도 Windows 릴리즈는 나간다.
 - 앱 묶음은 `mac/scripts/build-app.sh` 가 만든다 (유니버설, ad-hoc 서명, Info.plist 의 LSUIElement 로 Dock 아이콘 없음).
 
