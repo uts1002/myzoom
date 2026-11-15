@@ -29,6 +29,12 @@ enum Settings {
         set { d.set(newValue, forKey: "shownWelcome") }
     }
 
+    /// ⌃4 라이브 줌 — 맥 확대/축소 설정 안내를 한 번 보여 줬는지
+    static var shownLiveZoomGuide: Bool {
+        get { d.bool(forKey: "shownLiveZoomGuide") }
+        set { d.set(newValue, forKey: "shownLiveZoomGuide") }
+    }
+
     // 그리기 — Windows 판 기본값
     static let initialZoom: CGFloat = 2.0
     static let maxZoom: CGFloat = 8.0

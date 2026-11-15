@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         (1, kVK_ANSI_1, "화면 확대", #selector(startZoom)),
         (2, kVK_ANSI_2, "그리기", #selector(startDraw)),
         (3, kVK_ANSI_3, "타이머", #selector(startTimer)),
+        (4, kVK_ANSI_4, "라이브 줌 (맥 확대/축소)", #selector(startLiveZoom)),
     ]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -52,6 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(item("타이머 문구 바꾸기…", #selector(editTimerMessage)))
         menu.addItem(item("화면 기록 권한 확인…", #selector(checkPermission)))
+        menu.addItem(item("라이브 줌(⌃4) 설정 안내…", #selector(showLiveZoomGuide)))
         loginMenuItem = item("로그인할 때 자동 실행", #selector(toggleLogin))
         menu.addItem(loginMenuItem)
         autoUpdateMenuItem = item("자동 업데이트", #selector(toggleAutoUpdate))
@@ -129,6 +131,71 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         present(win, firstResponder: view)
     }
 
+    /// ⌃4 — 맥 기본 확대/축소를 ⌥⌘8 로 켜고 끈다 (LiveZoom 참고).
+    @objc func startLiveZoom() {
+        guard LiveZoom.canSendKeys else {
+            askForKeyPermission()
+            return
+        }
+        if !Settings.shownLiveZoomGuide {
+            showLiveZoomGuide()
+            return
+        }
+        LiveZoom.toggle()
+    }
+
+    @objc func showLiveZoomGuide() {
+        let a = NSAlert()
+        a.messageText = "라이브 줌은 맥 기본 확대 기능을 써요"
+        a.informativeText = """
+        ⌃4 를 누르면 MyZoom 이 맥 확대/축소 단축키(⌥⌘8)를 대신 눌러 줘요.
+        확대된 화면에서도 클릭·입력이 그대로 돼요.
+
+        처음 한 번만 설정해 주세요.
+        1. [설정 열기]를 누르세요.
+        2. '키보드 단축키를 사용하여 확대/축소'를 켜세요.
+        3. 다시 ⌃4 를 누르면 확대, 한 번 더 누르면 원래대로.
+
+        배율: ⌥⌘= 크게 · ⌥⌘- 작게
+        control 을 누른 채 두 손가락 스크롤로도 확대돼요 ('보조 키와 함께 스크롤 동작…' 설정).
+        """
+        a.addButton(withTitle: "설정 열기")
+        a.addButton(withTitle: "켜 두었어요")
+        a.addButton(withTitle: "닫기")
+        NSApp.activate(ignoringOtherApps: true)
+        switch a.runModal() {
+        case .alertFirstButtonReturn:
+            Settings.shownLiveZoomGuide = true
+            LiveZoom.openZoomSettings()
+        case .alertSecondButtonReturn:
+            Settings.shownLiveZoomGuide = true
+            LiveZoom.toggle()
+        default:
+            break
+        }
+    }
+
+    private func askForKeyPermission() {
+        LiveZoom.requestKeyPermission()
+        let a = NSAlert()
+        a.messageText = "손쉬운 사용 권한이 필요해요"
+        a.informativeText = """
+        ⌃4 라이브 줌은 맥 확대 단축키(⌥⌘8)를 MyZoom 이 대신 눌러 주는 방식이라 권한이 필요해요.
+
+        1. [설정 열기]를 누르세요.
+        2. 목록에서 MyZoom 을 켜세요. (없으면 + 를 눌러 홈 폴더 > 응용 프로그램의 MyZoom 을 추가)
+        3. 다시 ⌃4 를 누르세요. (다시 시작은 필요 없어요)
+
+        업데이트 뒤에 다시 물어보면, 목록에서 MyZoom 을 껐다가 다시 켜 주세요.
+        """
+        a.addButton(withTitle: "설정 열기")
+        a.addButton(withTitle: "닫기")
+        NSApp.activate(ignoringOtherApps: true)
+        if a.runModal() == .alertFirstButtonReturn {
+            LiveZoom.openAccessibilityPermission()
+        }
+    }
+
     private func present(_ win: NSWindow, firstResponder: NSView) {
         overlay = win
         NSApp.activate(ignoringOtherApps: true)
@@ -187,8 +254,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ⌃1 (control+1)  화면 확대 — 마우스를 따라 움직이고, 누르고 끌면 그 자리에 그려요
         ⌃2  그리기 — 지금 화면 위에 바로 판서
         ⌃3  타이머 — 쉬는 시간·활동 시간 카운트다운
+        ⌃4  라이브 줌 — 맥 기본 확대/축소를 켜고 끄기 (클릭·입력 가능)
 
-        확대·그리기는 처음 쓸 때 '화면 기록' 권한을 물어봐요.
+        확대·그리기는 처음 쓸 때 '화면 기록' 권한을, 라이브 줌은 '손쉬운 사용' 권한을 물어봐요.
         """
         if !failedHotkeys.isEmpty {
             text += "\n\n다른 프로그램이 이미 쓰고 있어서 이 단축키는 등록하지 못했어요: \(failedHotkeys.joined(separator: ", "))\n메뉴 막대에서 눌러 쓸 수 있어요."
