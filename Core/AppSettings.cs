@@ -119,6 +119,9 @@ public sealed class AppSettings
     public double LiveZoomInitial { get; set; } = 2.0;
     /// <summary>true: 라이브 줌 중 휠만으로 확대·축소. false: Ctrl+휠일 때만 (그냥 휠은 스크롤).</summary>
     public bool LiveZoomPlainWheel { get; set; } = true;
+    /// <summary>true: 라이브 줌 중 마우스 포인터를 화면 가운데에 두고 확대 화면이 따라다님 (화면 끝에선 멈춤).
+    /// false: 포인터가 화면에서 같은 자리에 머무는 비례 이동.</summary>
+    public bool LiveZoomCenterCursor { get; set; } = true;
 
     // ---- 펜 ----
     public double PenWidth { get; set; } = 4;

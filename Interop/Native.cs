@@ -66,6 +66,7 @@ internal static class Native
     [DllImport("Magnification.dll")] public static extern bool MagInitialize();
     [DllImport("Magnification.dll")] public static extern bool MagUninitialize();
     [DllImport("Magnification.dll")] public static extern bool MagSetFullscreenTransform(float level, int xOffset, int yOffset);
+    [DllImport("user32.dll")] public static extern int GetSystemMetrics(int index); // 0: SM_CXSCREEN, 1: SM_CYSCREEN (주 모니터, 물리 픽셀)
 
     // ---- 저수준 훅 ----
     public const int WH_KEYBOARD_LL = 13, WH_MOUSE_LL = 14;

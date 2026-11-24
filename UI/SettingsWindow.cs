@@ -289,6 +289,7 @@ public sealed class SettingsWindow : Window
         Slider(p, "최대 확대 배율", 2, 16, 1, () => _s.MaxZoom, v => _s.MaxZoom = v, "{0:0}배");
         Slider(p, "라이브 줌 처음 배율", 1.25, 6, 0.25, () => _s.LiveZoomInitial, v => _s.LiveZoomInitial = v, "{0:0.00}배");
         Check(p, "라이브 줌에서 휠만으로 확대·축소 (끄면 Ctrl+휠, 그냥 휠은 화면 스크롤)", () => _s.LiveZoomPlainWheel, v => _s.LiveZoomPlainWheel = v);
+        Check(p, "라이브 줌에서 마우스 포인터를 화면 가운데에 (확대 화면이 포인터를 따라다님)", () => _s.LiveZoomCenterCursor, v => _s.LiveZoomCenterCursor = v);
         Check(p, "확대·축소를 부드럽게 (애니메이션)", () => _s.AnimateZoom, v => _s.AnimateZoom = v);
 
         Header(p, "펜");

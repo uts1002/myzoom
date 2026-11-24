@@ -6,8 +6,9 @@ namespace MyZoom.Features;
 
 /// <summary>
 /// 라이브 줌: Windows 돋보기 API(MagSetFullscreenTransform)로 움직이는 화면을 그대로 확대한다.
-/// 커서가 화면에서 같은 자리에 머물도록(비례 이동) 오프셋을 잡기 때문에 확대된 상태에서도
-/// 보이는 곳을 그대로 클릭할 수 있다. 휠(설정에 따라 Ctrl+휠)로 배율 조절.
+/// 오프셋 잡는 방식은 설정으로 고른다 — 가운데 고정(포인터가 화면 가운데, 확대 화면이 따라다님,
+/// 화면 끝에선 멈춤) 또는 비례 이동(커서가 화면에서 같은 자리에 머묾). 어느 쪽이든 보이는 곳을
+/// 그대로 클릭할 수 있다. 휠(설정에 따라 Ctrl+휠)로 배율 조절.
 /// </summary>
 public sealed class LiveZoomController
 {
@@ -93,10 +94,21 @@ public sealed class LiveZoomController
         }
 
         Native.GetCursorPos(out var p);
-        // 커서 위치가 확대 후에도 같은 화면 위치에 오도록: off = p * (1 - 1/s)
-        double k = 1 - 1 / _scale;
-        _offX = (int)Math.Round(p.X * k);
-        _offY = (int)Math.Round(p.Y * k);
+        if (_settings().LiveZoomCenterCursor)
+        {
+            // 포인터가 확대 화면 가운데에 오도록: off = p - (보이는 폭)/2, 화면 밖이 보이지 않게 끝에서 멈춤
+            int w = Native.GetSystemMetrics(0), h = Native.GetSystemMetrics(1);
+            double vw = w / _scale, vh = h / _scale;
+            _offX = (int)Math.Round(Math.Clamp(p.X - vw / 2, 0, w - vw));
+            _offY = (int)Math.Round(Math.Clamp(p.Y - vh / 2, 0, h - vh));
+        }
+        else
+        {
+            // 커서 위치가 확대 후에도 같은 화면 위치에 오도록: off = p * (1 - 1/s)
+            double k = 1 - 1 / _scale;
+            _offX = (int)Math.Round(p.X * k);
+            _offY = (int)Math.Round(p.Y * k);
+        }
         Native.MagSetFullscreenTransform((float)_scale, _offX, _offY);
 
         if (_stopping && _scale <= 1.001) Finish();
